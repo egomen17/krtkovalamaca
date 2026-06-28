@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polisten Kaçan Kürt</title>
+    <style>
+        /* Genel Sayfa Tasarımı (Siberpunk Atmosfer) */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #05050a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        h1 {
+            margin: 5px 0;
+            font-size: 2.5rem;
+            color: #ff0055;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055, 0 0 40px #ff0055;
+        }
+
+        #scoreBoard {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #00ffff;
+            text-shadow: 0 0 8px #00ffff;
+            font-weight: bold;
+        }
+
+        /* Oyun Alanı Kafesi */
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background: linear-gradient(180deg, #0b0c10 70%, #1f2833 100%);
+            border: 4px solid #00ffff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #00ffff, inset 0 0 15px rgba(0, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        /* Karakterimiz (Neon Pembe/Mor) */
+        #player {
+            position: absolute;
+            left: 140px; /* Arkadaki köpek için biraz ileri alındı */
+            bottom: 40px;
+            width: 40px;
+            height: 50px;
+            background-color: #ff0055;
+            border-radius: 6px;
+            box-shadow: 0 0 15px #ff0055, 0 0 30px #ff0055;
+        }
+
+        #player::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: -2px;
+            width: 15px;
+            height: 6px;
+            background-color: #00ffff;
+            box-shadow: 0 0 8px #00ffff;
+        }
+
+        /* Kovalayan Polis İti (K9) */
+        #chaser {
+            position: absolute;
+            left: 40px;
+            bottom: 40px;
+            width: 55px;
+            height: 35px;
+            background-color: #111;
+            border: 2px solid #ff0000;
+            border-radius: 4px;
+            box-shadow: 0 0 15px #ff0000;
+        }
+
+        /* Köpeğin Neon Kırmızı Gözü */
+        #chaser::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 6px;
+            height: 6px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff0000, 0 0 15px #ff0000;
+        }
+
+        /* Köpeğin Ayak Animasyonu Efekti */
+        .dog-running {
+            animation: dogWobble 0.15s infinite alternate linear;
+        }
+
+        @keyframes dogWobble {
+            0% { transform: translateY(0) skewX(-5deg); }
+            100% { transform: translateY(-4px) skewX(5deg); }
+        }
+
+        /* Polis/Engel (Neon Mavi/Kırmızı) */
+        .obstacle {
+            position: absolute;
+            right: -50px;
+            bottom: 40px;
+            width: 35px;
+            height: 45px;
+            background: linear-gradient(45deg, #0022ff, #ff0000);
+            border-radius: 4px;
+            box-shadow: 0 0 15px #ff0000, 0 0 25px #0022ff;
+        }
+
+        /* Zemin Hattı */
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40px;
+            background-color: #11141a;
+            border-top: 3px solid #00ffff;
+            box-shadow: 0 -5px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        /* Oyun Bitti Ekranı */
+        #gameOverScreen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(5, 5, 10, 0.85);
+            backdrop-filter: blur(5px);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #gameOverScreen h2 {
+            color: #ff0000;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px #ff0000;
+        }
+
+        #restartBtn {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ffff;
+            background-color: transparent;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px #00ffff;
+            transition: all 0.3s ease;
+        }
+
+        #restartBtn:hover {
+            background-color: #00ffff;
+            color: #05050a;
+            box-shadow: 0 0 25px #00ffff;
+        }
+
+        /* Bilgilendirme Alt Yazısı */
+        .controls {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .controls span {
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background-color: #222;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Polisten Kaçan Kürt</h1>
+    <div id="scoreBoard">SKOR: <span id="score">0</span></div>
+
+    <div id="gameContainer">
+        <div id="chaser" class="dog-running"></div>
+        <div id="player"></div>
+        <div id="ground"></div>
+        
+        <!-- Oyun Bitti Ekranı -->
+        <div id="gameOverScreen">
+            <h2>YAKALANDIN!</h2>
+            <div style="font-size: 1.5rem; margin-bottom: 20px;">Yapılan Skor: <span id="finalScore">0</span></div>
+            <button id="restartBtn" onclick="resetGame()">YENİDEN BAŞLA</button>
+        </div>
+    </div>
+
+    <div class="controls">Zıplamak için <span>BOŞLUK (SPACE)</span> tuşuna veya <span>EKRANA</span> bas.</div>
+
+    <script>
+        const player = document.getElementById('player');
+        const chaser = document.getElementById('chaser');
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreElement = document.getElementById('score');
+        const finalScoreElement = document.getElementById('finalScore');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+
+        // Ayarlanan Yeni Fizik Kuralları (Daha yumuşak ve uzun havada kalma süresi)
+        let isJumping = false;
+        let gravity = 0.6;       /* Eski değer 1.8'di, düşürülerek süzülme etkisi yaratıldı */
+        let jumpPower = 15;      /* Eski değer 28'di, yerçekimine oranla dengelendi */
+        let playerY = 40; 
+        let velocityY = 0;
+        
+        let score = 0;
+        let obstacles = [];
+        let gameSpeed = 5;
+        let isGameOver = false;
+        let spawnTimer = 0;
+
+        // Kontroller
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                jump();
+            }
+        });
+
+        gameContainer.addEventListener('touchstart', function() {
+            jump();
+        });
+        gameContainer.addEventListener('mousedown', function() {
+            jump();
+        });
+
+        function jump() {
+            if (!isJumping && !isGameOver) {
+                isJumping = true;
+                velocityY = jumpPower;
+            }
+        }
+
+        // Oyun Döngüsü
+        function update() {
+            if (isGameOver) return;
+
+            // Karakter Yumuşak Zıplama Fiziği
+            if (isJumping) {
+                velocityY -= gravity;
+                playerY += velocityY;
+
+                if (playerY <= 40) {
+                    playerY = 40;
+                    isJumping = false;
+                    velocityY = 0;
+                }
+                player.style.bottom = playerY + 'px';
+            }
+
+            // Skor Kontrolü
+            score++;
+            scoreElement.innerText = Math.floor(score / 5);
+            if (score % 600 === 0) { 
+                gameSpeed += 0.6;
+            }
+
+            // Engelleri Rastgele Çıkarma
+            spawnTimer++;
+            if (spawnTimer > Math.random() * 60 + 80) { 
+                createObstacle();
+                spawnTimer = 0;
+            }
+
+            // Engellerin Hareketi ve Çarpışma Mekaniği
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obstacle = obstacles[i];
+                let currentLeft = parseInt(obstacle.style.right);
+                
+                currentLeft += gameSpeed;
+                obstacle.style.right = currentLeft + 'px';
+
+                if (currentLeft > 850) {
+                    obstacle.remove();
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+
+                let playerRect = player.getBoundingClientRect();
+                let obstacleRect = obstacle.getBoundingClientRect();
+
+                if (
+                    playerRect.left < obstacleRect.right &&
+                    playerRect.right > obstacleRect.left &&
+                    playerRect.top < obstacleRect.bottom &&
+                    playerRect.bottom > obstacleRect.top
+                ) {
+                    endGame();
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function createObstacle() {
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            obstacle.style.right = '-40px';
+            
+            // Kolay atlanması için engellerin boyu biraz dengelendi
+            let randomHeight = Math.floor(Math.random() * 15) + 35; 
+            obstacle.style.height = randomHeight + 'px';
+            
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            chaser.classList.remove('dog-running'); // Köpeğin koşma animasyonunu durdur
+            gameOverScreen.style.display = 'flex';
+            finalScoreElement.innerText = Math.floor(score / 5);
+        }
+
+        function resetGame() {
+            obstacles.forEach(obs => obs.remove());
+            obstacles = [];
+            
+            score = 0;
+            gameSpeed = 5;
+            playerY = 40;
+            player.style.bottom = '40px';
+            isJumping = false;
+            isGameOver = false;
+            spawnTimer = 0;
+            
+            chaser.classList.add('dog-running'); // Köpeği yeniden koştur
+            gameOverScreen.style.display = 'none';
+            update();
+        }
+
+        update();
+    </script>
+</body>
+</html>
